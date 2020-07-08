@@ -4,7 +4,17 @@ import torch
 import numpy as np
 from skimage import io
 from torch.utils.data import Dataset, DataLoader
+from torchvision import transforms
 import torchvision.transforms.functional as TF
+import PIL
+from PIL import Image
+
+transform = transforms.Compose([
+    transforms.ToPILImage(),
+    transforms.Resize(70, PIL.Image.LANCZOS),
+    transforms.ToTensor()
+])
+
 
 class ImageDataSet(Dataset):
     def __init__(self, root_dir):
@@ -16,7 +26,9 @@ class ImageDataSet(Dataset):
 
     def __getitem__(self, idx):
         imagepath = self.fileList[idx]
-        return io.imread(imagepath)
+        image = io.imread(imagepath)
+        image = transform(image)
+        return image 
 
 class CroppedOutImageDataSet(Dataset):
     def __init__(self, Dataset, maxCropPercentage: float = 30.):
@@ -57,9 +69,9 @@ def cropImage(image_array, top, bottom, left, right):
     cropped_image = np.copy(image_array)
     crop_array = np.zeros(image_array.shape)
 
-    if ((left < 20 or top < 20) or ((-right + image_array.shape[1] -1) < 20 or
-        (-bottom + image_array.shape[0] -1 ) < 20)):
-        raise ValueError('Too close to border')
+    #if ((left < 20 or top < 20) or ((-right + image_array.shape[1] -1) < 20 or
+    #    (-bottom + image_array.shape[0] -1 ) < 20)):
+    #    raise ValueError('Too close to border')
 
     target_array = image_array[top:bottom+1,left:right+1]
     crop_array[top:bottom+1,left:right+1] = 1
