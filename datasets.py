@@ -48,9 +48,14 @@ class CroppedOutImageDataSet(Dataset):
         image_data[:] -= mean
         image_data[:] /= std
 
-        # Setting some random crop_center
-        top, bottom = np.sort([int(np.random.uniform(height*0.2, height*0.8)), int(np.random.uniform(height*0.2, height*0.8))])
-        left, right = np.sort([int(np.random.uniform(width*0.2, width*0.8)), int(np.random.uniform(width*0.2, width*0.8))])
+        # setting some random crops
+        top = int(np.random.uniform(20, height-40))
+        bottom = top + int(np.random.uniform(5,21))
+        left = int(np.random.uniform(20, width-40))
+        right = left + int(np.random.uniform(5, 21))
+
+        #top, bottom = np.sort([int(np.random.uniform(height*0.2, height*0.8)), int(np.random.uniform(height*0.2, height*0.8))])
+        #left, right = np.sort([int(np.random.uniform(width*0.2, width*0.8)), int(np.random.uniform(width*0.2, width*0.8))])
 
         cropped_image, crop_array, target_array = cropImage(image_data, top, bottom, left, right)
 
@@ -62,8 +67,6 @@ class CroppedOutImageDataSet(Dataset):
         inputs[..., 3] = np.tile(np.expand_dims(np.linspace(start=-1, stop=1, num=height),1),reps=[1,width])
 
         return TF.to_tensor(inputs), TF.to_tensor(target_array), id
-
-
 
 def cropImage(image_array, top, bottom, left, right):
     cropped_image = np.copy(image_array)
@@ -79,6 +82,18 @@ def cropImage(image_array, top, bottom, left, right):
     
     return (cropped_image, crop_array.astype(image_array.dtype), target_array)
 
+def collate_Images(batch):
+    #maxHeight = np.max([sample[0].size()[1] for sample in batch])
+    #maxWidth = np.max([sample[0].size()[2] for sample in batch])
+    #inputs = torch.zeros((len(batch), 4,maxHeight, maxWidth))
+    #for singleInput,sample in zip(inputs,batch):
+    #    for layer, clayer in zip(sample[0],singleInput):
+    #        clayer[0:layer.size()[0],0:layer.size()[1]] = layer
 
+
+    inputs = [sample[0] for sample in batch]
+    targets = [sample[1] for sample in batch]
+    ids = [sample[2] for sample in batch]
+    return [inputs, targets, ids]
 
     
