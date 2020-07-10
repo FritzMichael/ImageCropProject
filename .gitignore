@@ -1,4 +1,7 @@
 /data
+/downscaled_data
 /__pycache__
 /credentials.txt
 /results
+/*.pt
+/*.pkl
