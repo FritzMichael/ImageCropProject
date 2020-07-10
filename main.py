@@ -9,6 +9,8 @@ from time import gmtime, strftime
 import os
 import gc
 
+# This should be the vectorization branch
+
 target_device = torch.device(r'cuda' if torch.cuda.is_available() else r'cpu')
 #target_device = 'cpu'
 
