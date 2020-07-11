@@ -6,6 +6,7 @@ from datasets import ImageDataSet, CroppedOutImageDataSet, collate_Images, scale
 from architectures import SimpleCNN
 from torch.utils.tensorboard import SummaryWriter
 from time import gmtime, strftime
+import time
 from torchvision import datasets
 import os
 import gc
@@ -25,16 +26,16 @@ print(target_device)
 #root_dir = 'downscaled_data'
 root_dir = 'data'
 
-dataset = CroppedOutImageDataSet(ImageDataSet(root_dir))
+dataset = CroppedOutImageDataSet(scaledImageDataSet('downscaled_data.pkl'))
 
 # Splitting dataset into train and test sets
 trainSet, testSet = torch.utils.data.random_split(dataset, [int(len(dataset)*(4/5)), len(dataset) - int(len(dataset)*(4/5))])
 
 # Creating Dataloaders
-trainloader = DataLoader(dataset,batch_size=32, shuffle=True ,num_workers = 8, collate_fn=collate_Images)
+trainloader = DataLoader(dataset,batch_size=16, shuffle=True ,num_workers = 0, collate_fn=collate_Images)
 
 # Optimizer
-optimizer = torch.optim.Adam(model.parameters(), lr=5e-3)
+optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 
 best_loss = np.inf
 torch.save(model, os.path.join(result_path, 'best_model.pt'))
@@ -73,15 +74,25 @@ epoch = 0
 model.train()
 while True:
     for data in trainloader:
+        starttime = time.time()
         inputs, targets, ids = data
+        datatime = time.time()
+        print(f'datatime: {datatime-starttime}')
 
         optimizer.zero_grad()
 
         loss = 0
 
-        inputs = inputs.to(target_device)
-        targets = targets.to(target_device)
+        #inputs = inputs.to(target_device)
+        #targets = targets.to(target_device)
+
+        transfertime = time.time()
+        print(f'transfertime: {transfertime-datatime}')
+        
         outputs = model(inputs)
+
+        forwardtime = time.time()
+        print(f'forwardtime: {forwardtime-transfertime}')
         #for x,target in zip(inputs, targets):
         #    x = x.to(target_device)
         #    target = target.to(target_device)
@@ -95,11 +106,26 @@ while True:
 
         # Calculate loss
         loss = calcLoss(outputs, inputs, targets)
+
+        losstime = time.time()
+        print(f'losstime: {losstime-forwardtime}')
+
         loss.backward()
+
+        backwardtime = time.time()
+        print(f'backwardtime: {backwardtime-losstime}')
+
         optimizer.step()
+
+        gradienttime = time.time()
+        print(f'gradienttime: {gradienttime-backwardtime}')
 
         update += 1
         
+        totaltime = time.time()-starttime
+
+        print(f'totaltime: {totaltime}')
+        print(update)
         if (update%10 == 0):
             writer.add_scalar(tag="training/loss",
                                   scalar_value=loss.cpu(),
