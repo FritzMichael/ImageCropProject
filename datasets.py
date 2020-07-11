@@ -15,6 +15,24 @@ transform = transforms.Compose([
     transforms.ToTensor()
 ])
 
+scaledtransform = transforms.Compose([
+    transforms.ToTensor()
+])
+
+
+class scaledImageDataSet(Dataset):
+    def __init__(self, root_dir):
+      self.root_dir = root_dir
+      self.fileList = sorted([join(root,f) for root, dirs, files in os.walk(root_dir) for f in files if f.endswith('.jpg')])
+
+    def __len__(self):
+        return len(self.fileList)
+
+    def __getitem__(self, idx):
+        imagepath = self.fileList[idx]
+        image = io.imread(imagepath)
+        image = scaledtransform(image)
+        return image 
 
 class ImageDataSet(Dataset):
     def __init__(self, root_dir):
@@ -83,16 +101,28 @@ def cropImage(image_array, top, bottom, left, right):
     return (cropped_image, crop_array.astype(image_array.dtype), target_array)
 
 def collate_Images(batch):
-    #maxHeight = np.max([sample[0].size()[1] for sample in batch])
-    #maxWidth = np.max([sample[0].size()[2] for sample in batch])
-    #inputs = torch.zeros((len(batch), 4,maxHeight, maxWidth))
-    #for singleInput,sample in zip(inputs,batch):
-    #    for layer, clayer in zip(sample[0],singleInput):
-    #        clayer[0:layer.size()[0],0:layer.size()[1]] = layer
+    #collating inputs
+    maxHeight = np.max([sample[0].size()[1] for sample in batch])
+    maxWidth = np.max([sample[0].size()[2] for sample in batch])
+    inputs = torch.zeros((len(batch), 4,maxHeight, maxWidth))
+    for singleInput,sample in zip(inputs,batch):
+        for layer, clayer in zip(sample[0],singleInput):
+            clayer[0:layer.size()[0],0:layer.size()[1]] = layer
 
 
-    inputs = [sample[0] for sample in batch]
-    targets = [sample[1] for sample in batch]
+    #inputs = [sample[0] for sample in batch]
+
+    # collating targets
+    maxHeight = np.max([sample[1].size()[1] for sample in batch])
+    maxWidth = np.max([sample[1].size()[2] for sample in batch])
+    targets = torch.zeros((len(batch), 1, maxHeight*maxWidth))
+
+    for tlayer, sample in zip(targets,batch):
+        target = sample[1]
+        tlayer[0,0:target.size()[1]*target.size()[2]] = target.reshape(-1,)
+
+
+    #targets = [sample[1] for sample in batch]
     ids = [sample[2] for sample in batch]
     return [inputs, targets, ids]
 
