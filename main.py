@@ -32,7 +32,7 @@ dataset = CroppedOutImageDataSet(scaledImageDataSet('downscaled_data.pkl'))
 trainSet, testSet = torch.utils.data.random_split(dataset, [int(len(dataset)*(4/5)), len(dataset) - int(len(dataset)*(4/5))])
 
 # Creating Dataloaders
-trainloader = DataLoader(dataset,batch_size=16, shuffle=True ,num_workers = 0, collate_fn=collate_Images)
+trainloader = DataLoader(dataset,batch_size=16, shuffle=True ,num_workers = 8, collate_fn=collate_Images)
 
 # Optimizer
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
@@ -43,15 +43,17 @@ torch.save(model, os.path.join(result_path, 'best_model.pt'))
 
 mse = torch.nn.MSELoss()
 
-def calcLoss(outputs, inputs, targets):
+def calcLoss(outputs, mask, targets):
 
-    preds = torch.zeros_like(targets, device=target_device)
+    zeroTens = torch.zeros_like(targets, device=target_device)
+    preds = torch.where(mask.to(dtype=bool), outputs, zeroTens)
 
-    for pred, output, cinput in zip(preds, outputs, inputs):
-        temp = output[0][cinput[1].to(dtype=torch.bool)]
-        pred[0,0:temp.size()[0]] = temp
+    #for pred, output, cinput in zip(preds, outputs, mask):
+    #    temp = output[0][cinput.to(dtype=torch.bool)]
+    #    pred[0,0:temp.size()[0]] = temp
     #target_mask = torch.squeeze(inputs)[1].to(dtype=torch.bool)
     #pred = torch.squeeze(outputs)[target_mask]
+    
     return mse(preds, targets)
 
 def visualize_result(outputs, inputs, targets, update):
@@ -75,7 +77,7 @@ model.train()
 while True:
     for data in trainloader:
         starttime = time.time()
-        inputs, targets, ids = data
+        inputs, crop_dicts, targets, ids = data
         datatime = time.time()
         print(f'datatime: {datatime-starttime}')
 
@@ -83,13 +85,13 @@ while True:
 
         loss = 0
 
-        #inputs = inputs.to(target_device)
-        #targets = targets.to(target_device)
+        inputs = inputs.to(target_device)
+        targets = targets.to(target_device)
 
         transfertime = time.time()
         print(f'transfertime: {transfertime-datatime}')
         
-        outputs = model(inputs)
+        outputs, mask = model(inputs, crop_dicts)
 
         forwardtime = time.time()
         print(f'forwardtime: {forwardtime-transfertime}')
@@ -105,7 +107,7 @@ while True:
         #    torch.save(model, os.path.join(result_path, 'best_model.pt'))
 
         # Calculate loss
-        loss = calcLoss(outputs, inputs, targets)
+        loss = calcLoss(outputs, mask, targets)
 
         losstime = time.time()
         print(f'losstime: {losstime-forwardtime}')

@@ -32,7 +32,7 @@ class scaledImageDataSet(Dataset):
         return len(self.imagefile)
 
     def __getitem__(self, idx):
-        return torch.tensor(self.imagefile[idx]).to('cuda')
+        return torch.tensor(self.imagefile[idx])
 
 class ImageDataSet(Dataset):
     def __init__(self, root_dir):
@@ -77,14 +77,9 @@ class CroppedOutImageDataSet(Dataset):
 
         cropped_image, crop_array, target_array = cropImage(image_data, top, bottom, left, right)
 
-        # constructing the image we want to input to the model
-        inputs = torch.zeros(size = (*cropped_image.shape, 4), dtype=cropped_image.dtype, device='cuda')
-        inputs[..., 0] = cropped_image
-        inputs[..., 1] = crop_array
-        inputs[..., 2] = torch.linspace(start=-1, end=1, steps=width, device='cuda').repeat(height,1)
-        inputs[..., 3] = torch.transpose(torch.linspace(start=-1, end=1, steps=height, device='cuda').repeat(width,1),0,1)
+        cropdict = {'top': top, 'bottom': bottom, 'left': left, 'right': right}
 
-        return inputs.permute(2,0,1), target_array, id
+        return cropped_image, cropdict, target_array, id
 
 def cropImage(image_array, top, bottom, left, right):
     cropped_image = image_array.detach().clone()
@@ -102,28 +97,35 @@ def cropImage(image_array, top, bottom, left, right):
 
 def collate_Images(batch):
     #collating inputs
-    maxHeight = np.max([sample[0].size()[1] for sample in batch])
-    maxWidth = np.max([sample[0].size()[2] for sample in batch])
-    inputs = torch.zeros((len(batch), 4,maxHeight, maxWidth), device='cuda')
+    maxHeight = np.max([sample[0].size()[0] for sample in batch])
+    maxWidth = np.max([sample[0].size()[1] for sample in batch])
+    inputs = torch.zeros((len(batch), 1,maxHeight, maxWidth))
     for singleInput,sample in zip(inputs,batch):
-        for layer, clayer in zip(sample[0],singleInput):
-            clayer[0:layer.size()[0],0:layer.size()[1]] = layer
+        singleInput[0,0:sample[0].size()[0],0:sample[0].size()[1]] = sample[0]
+
+        #for layer, clayer in zip(sample[0],singleInput):
+        #    clayer[0:layer.size()[0],0:layer.size()[1]] = layer
 
 
     #inputs = [sample[0] for sample in batch]
 
     # collating targets
-    maxHeight = np.max([sample[1].size()[0] for sample in batch])
-    maxWidth = np.max([sample[1].size()[1] for sample in batch])
-    targets = torch.zeros((len(batch), 1, maxHeight*maxWidth), device='cuda')
+    #maxHeight = np.max([sample[2].size()[0] for sample in batch])
+    #maxWidth = np.max([sample[2].size()[1] for sample in batch])
+    targets = torch.zeros((len(batch), 1, maxHeight, maxWidth))
 
     for tlayer, sample in zip(targets,batch):
-        target = sample[1]
-        tlayer[0,0:target.size()[0]*target.size()[1]] = target.reshape(-1,)
+        target = sample[2]
+        top = sample[1]['top']
+        bottom = sample[1]['bottom']
+        left = sample[1]['left']
+        right = sample[1]['right']
+        tlayer[0,top:bottom+1,left:right+1] = target
 
 
     #targets = [sample[1] for sample in batch]
-    ids = [sample[2] for sample in batch]
-    return [inputs, targets, ids]
+    ids = [sample[3] for sample in batch]
+    crop_dicts = [sample[1] for sample in batch]
+    return [inputs, crop_dicts, targets, ids]
 
     
