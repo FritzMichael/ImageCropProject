@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import torch
 from torch.utils.data import DataLoader
 from datasets import ImageDataSet, CroppedOutImageDataSet, collate_Images
-from architectures import SimpleCNN
+from architectures import SimpleCNN, ComplexCNN
 from torch.utils.tensorboard import SummaryWriter
 from time import gmtime, strftime
 import os
@@ -16,7 +16,7 @@ target_device = torch.device(r'cuda' if torch.cuda.is_available() else r'cpu')
 result_path = os.path.join('results', 'tensorboard',strftime("%Y-%m-%d,%H:%M:%S", gmtime()))
 writer = SummaryWriter(log_dir=result_path)
 
-model = SimpleCNN(n_in_channels=4, n_hidden_layers=5, kernel_size = 9)
+model = ComplexCNN()
 model.to(target_device)
 print(target_device)
 
@@ -28,7 +28,7 @@ dataset = CroppedOutImageDataSet(ImageDataSet(root_dir))
 trainSet, testSet = torch.utils.data.random_split(dataset, [int(len(dataset)*(4/5)), len(dataset) - int(len(dataset)*(4/5))])
 
 # Creating Dataloaders
-trainloader = DataLoader(dataset,batch_size=16*4, shuffle=True ,num_workers = 0, collate_fn=collate_Images)
+trainloader = DataLoader(dataset,batch_size=16, shuffle=True ,num_workers = 0, collate_fn=collate_Images)
 
 # Optimizer
 optimizer = torch.optim.Adam(model.parameters(), lr=5e-4)
