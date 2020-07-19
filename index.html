@@ -1,1 +1,16 @@
-<img src="downscaled_data/1.jpg"> </img>
+<script>
+    function changePic() {
+    let n = 27398;
+
+    randomInt = Math.floor(Math.random() * Math.floor(n));
+    imgPath = "downscaled_data/" + randomInt.toString() + ".jpg";
+
+    document.getElementById("basicImage").src = imgPath;
+
+    console.log(imgPath);
+    };
+</script>
+
+<input type="button" onclick="changePic();" value="change Pic!" />
+<br>
+<img Id="basicImage" src="downscaled_data/1.jpg"> </img>
