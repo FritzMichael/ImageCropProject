@@ -32,7 +32,7 @@ dataset = CroppedOutImageDataSet(scaledImageDataSet('downscaled_data.pkl'))
 trainSet, testSet = torch.utils.data.random_split(dataset, [int(len(dataset)*(4/5)), len(dataset) - int(len(dataset)*(4/5))])
 
 # Creating Dataloaders
-trainloader = DataLoader(dataset,batch_size=16, shuffle=True ,num_workers = 8, collate_fn=collate_Images)
+trainloader = DataLoader(dataset,batch_size=32, shuffle=True ,num_workers = 8, collate_fn=collate_Images)
 
 # Optimizer
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
@@ -46,7 +46,7 @@ mse = torch.nn.MSELoss()
 def calcLoss(outputs, mask, targets):
 
     zeroTens = torch.zeros_like(targets, device=target_device)
-    preds = torch.where(mask.to(dtype=bool), outputs, zeroTens)
+    preds = torch.where(torch.unsqueeze(mask,1).to(dtype=bool), outputs, zeroTens)
 
     #for pred, output, cinput in zip(preds, outputs, mask):
     #    temp = output[0][cinput.to(dtype=torch.bool)]
